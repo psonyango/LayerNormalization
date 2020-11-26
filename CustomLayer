@@ -1,0 +1,34 @@
+import tensorflow as tf
+from tensorflow import keras
+
+ class LayerNormalize(keras.layers.LayerNormalization):
+    """Performs Layer Normalization"""
+    def __init__(self,center, scale, **kwargs):
+        """taking hyperparameters as arguments"""
+        super().__init__(**kwargs)
+        self.center = center
+        self.scale = scale
+
+    def build(self, input_shape):
+        '''creates the layer's variables and is called the first time the layer is used'''
+        self.beta = self.add_weight(name='beta', shape=[input_shape[-1:]], dtype=tf.float32, initializer="zeros")
+        self.gamma = self.add_weight(name='gamma', shape=[input_shape[-1:]], dtype=tf.float32, initializer="ones")
+        super().build(input_shape)
+
+    def call(self, X):
+        e = 0.001
+        mean, var = tf.nn.moments(X, axes=-1, keepdims=True)
+        return self.gamma @ (X - mean) / (tf.math.sqrt(var) + e) + self.beta
+
+    def compute_output_shape(self, input_shape):
+        '''Returns the shape of this layer's output'''
+        return tf.TensorShape(input_shape.as_list[:-1])
+
+    def get_config(self):
+        '''Saving the configurations of the layer'''
+        base_config = super().get_config()
+        return{**base_config, 'center':self.center, "scale":self.scale}
+
+
+
+
